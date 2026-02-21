@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vật Lý Quiz</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Josefin+Sans:wght@300;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a12;
+    --panel: #13131f;
+    --accent: #00f5c4;
+    --text: #e8e8f0;
+    --muted: #5a5a7a;
+    --border: #2a2a3f;
+    --correct: #00f5c4;
+    --wrong: #ff4d6d;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Josefin Sans', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    position: relative;
+  }
+
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background:
+      radial-gradient(ellipse at 20% 50%, rgba(0,245,196,0.06) 0%, transparent 60%),
+      radial-gradient(ellipse at 80% 20%, rgba(255,77,109,0.06) 0%, transparent 60%);
+    pointer-events: none;
+  }
+
+  body::after {
+    content: '';
+    position: fixed; inset: 0;
+    background-image:
+      linear-gradient(rgba(0,245,196,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,245,196,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+  }
+
+  .container {
+    position: relative; z-index: 1;
+    width: 100%; max-width: 760px;
+    padding: 24px;
+  }
+
+  header { text-align: center; margin-bottom: 28px; }
+
+  .title-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px; letter-spacing: 0.3em;
+    color: var(--accent); text-transform: uppercase; margin-bottom: 8px;
+  }
+
+  h1 { font-size: clamp(26px, 5vw, 38px); font-weight: 700; }
+  h1 span { color: var(--accent); }
+
+  /* Step indicator */
+  .steps {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 12px;
+    margin-top: 16px;
+  }
+
+  .step-dot {
+    display: flex; align-items: center; justify-content: center;
+    width: 32px; height: 32px; border-radius: 50%;
+    border: 2px solid var(--border);
+    font-family: 'Space Mono', monospace; font-size: 12px;
+    color: var(--muted);
+    transition: all 0.4s;
+  }
+
+  .step-dot.active  { border-color: var(--accent); color: var(--accent); background: rgba(0,245,196,0.1); }
+  .step-dot.done-ok { border-color: var(--correct); background: rgba(0,245,196,0.15); color: var(--correct); }
+  .step-dot.done-err{ border-color: var(--wrong);   background: rgba(255,77,109,0.12); color: var(--wrong); }
+
+  .step-line {
+    flex: 1; max-width: 60px; height: 2px;
+    background: var(--border); border-radius: 2px;
+    transition: background 0.4s;
+  }
+  .step-line.done { background: var(--accent); }
+
+  /* Formula cards */
+  .formulas-row {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 16px; margin-bottom: 24px;
+  }
+
+  .formula-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px; padding: 20px 18px;
+    position: relative;
+    transition: border-color 0.3s, box-shadow 0.3s;
+  }
+
+  .formula-card.active-card  { border-color: rgba(0,245,196,0.5); box-shadow: 0 0 24px rgba(0,245,196,0.1); }
+  .formula-card.card-correct { border-color: var(--correct); box-shadow: 0 0 20px rgba(0,245,196,0.2); }
+  .formula-card.card-wrong   { border-color: var(--wrong);   box-shadow: 0 0 20px rgba(255,77,109,0.18); }
+  .formula-card.card-dim     { opacity: 0.45; }
+
+  .card-num {
+    position: absolute; top: 10px; right: 14px;
+    font-family: 'Space Mono', monospace; font-size: 10px; color: var(--muted);
+  }
+
+  .formula-title {
+    font-size: 11px; color: var(--muted);
+    letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 12px;
+  }
+
+  .formula-display {
+    font-family: 'Space Mono', monospace;
+    font-size: 16px; color: var(--text);
+    display: flex; flex-wrap: wrap; align-items: center; gap: 2px; line-height: 2;
+  }
+
+  .blank-box {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 32px; padding: 2px 10px;
+    background: rgba(0,245,196,0.12);
+    border: 1.5px dashed var(--accent);
+    border-radius: 6px;
+    color: var(--accent);
+    font-family: 'Space Mono', monospace; font-size: 15px; font-weight: 700;
+    transition: all 0.3s;
+  }
+
+  .blank-box.revealed  { background: rgba(0,245,196,0.2);  border-style: solid; }
+  .blank-box.wrong-rev { background: rgba(255,77,109,0.15); border-color: var(--wrong); border-style: solid; color: var(--wrong); }
+
+  /* Question */
+  .question-text {
+    text-align: center; font-size: 15px; color: var(--muted);
+    margin-bottom: 18px; line-height: 1.7;
+  }
+  .question-text strong { color: var(--accent); font-family: 'Space Mono', monospace; }
+
+  /* Options */
+  .options-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 10px; margin-bottom: 18px;
+  }
+
+  .option-btn {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px; padding: 14px 10px;
+    color: var(--text);
+    font-family: 'Space Mono', monospace; font-size: 16px; font-weight: 700;
+    cursor: pointer; transition: all 0.2s; text-align: center;
+  }
+
+  .option-btn:hover:not(:disabled):not(.hint) {
+    border-color: var(--accent);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 20px rgba(0,245,196,0.15);
+  }
+
+  .option-btn:disabled { cursor: not-allowed; }
+  .option-btn.sel-ok  { border-color: var(--correct); background: rgba(0,245,196,0.12); color: var(--correct); }
+  .option-btn.sel-err { border-color: var(--wrong);   background: rgba(255,77,109,0.12); color: var(--wrong); }
+
+  /* hint = correct answer highlighted after wrong pick — still clickable */
+  .option-btn.hint {
+    border-color: var(--accent);
+    background: rgba(0,245,196,0.08);
+    color: var(--accent);
+    animation: pulse 1s infinite;
+    cursor: pointer;
+  }
+
+  @keyframes pulse {
+    0%,100% { box-shadow: 0 0 0 0 rgba(0,245,196,0.3); }
+    50%      { box-shadow: 0 0 0 6px rgba(0,245,196,0); }
+  }
+
+  /* Feedback */
+  .feedback {
+    text-align: center; font-size: 14px;
+    font-family: 'Space Mono', monospace;
+    min-height: 20px; margin-bottom: 14px;
+    transition: all 0.2s;
+  }
+  .feedback.ok  { color: var(--correct); }
+  .feedback.err { color: var(--wrong); }
+
+  /* Next */
+  .next-btn {
+    display: none; width: 100%; padding: 15px;
+    background: var(--accent); color: #000; border: none; border-radius: 10px;
+    font-family: 'Josefin Sans', sans-serif; font-size: 15px; font-weight: 700;
+    letter-spacing: 0.15em; text-transform: uppercase; cursor: pointer; transition: all 0.2s;
+  }
+  .next-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 24px rgba(0,245,196,0.3); }
+
+  /* Win */
+  .win-screen { display: none; text-align: center; animation: popIn .5s cubic-bezier(0.175,.885,.32,1.275); }
+  @keyframes popIn { from{transform:scale(.8);opacity:0} to{transform:scale(1);opacity:1} }
+
+  .win-icon  { font-size: 72px; margin-bottom: 16px; display: block; }
+  .win-title { font-size: 36px; font-weight: 700; color: var(--accent); margin-bottom: 8px; }
+  .win-sub   { color: var(--muted); margin-bottom: 32px; font-size: 14px; font-family: 'Space Mono', monospace; line-height: 1.8; }
+
+  .win-btn {
+    display: inline-block; padding: 16px 40px; background: var(--accent); color: #000;
+    text-decoration: none; border-radius: 10px; font-family: 'Josefin Sans', sans-serif;
+    font-size: 15px; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase;
+    transition: all .2s; margin: 6px; cursor: pointer; border: none;
+  }
+  .win-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 24px rgba(0,245,196,0.3); }
+  .win-btn.sec { background: transparent; border: 1px solid var(--border); color: var(--text); }
+  .win-btn.sec:hover { border-color: var(--text); }
+
+  /* Particle */
+  .particle {
+    position: fixed; pointer-events: none;
+    border-radius: 50%;
+    animation: fly 1s ease-out forwards;
+  }
+  @keyframes fly { 0%{transform:translate(0,0) scale(1);opacity:1} 100%{transform:translate(var(--tx),var(--ty)) scale(0);opacity:0} }
+
+  .quiz-wrap { animation: fadeIn .4s ease; }
+  @keyframes fadeIn { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+
+  .shake { animation: shake .4s ease; }
+  @keyframes shake {
+    0%,100%{transform:translateX(0)}
+    20%{transform:translateX(-6px)}
+    40%{transform:translateX(6px)}
+    60%{transform:translateX(-4px)}
+    80%{transform:translateX(4px)}
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <div class="title-label">Ní ỏi tôi muốn ní nhớ thêm công thức lý nữa hehe tôi tham lam quá chứ gì kkk 
+        ní ko cần lấy sách vở ra xem lại đâu cứ chọn đại 1 trong 4 cái dưới trước đi sai thì hiện cái đúng ní chọn lại 
+        nhé 
+    </div>
+    <h1>Nhi làm <span>đúng</span> sẽ làm tiếp tiếng anh nhé</h1>
+
+    <!-- Step indicator: Q1 → Q2 -->
+    <div class="steps">
+      <div class="step-dot active" id="step1">1</div>
+      <div class="step-line" id="line1"></div>
+      <div class="step-dot" id="step2">2</div>
+    </div>
+  </header>
+
+  <div class="quiz-wrap" id="quiz">
+    <!-- 2 formula cards always visible -->
+    <div class="formulas-row">
+      <div class="formula-card" id="card1">
+        <div class="card-num">①</div>
+        <div class="formula-title" id="title1"></div>
+        <div class="formula-display" id="display1"></div>
+      </div>
+      <div class="formula-card" id="card2">
+        <div class="card-num">②</div>
+        <div class="formula-title" id="title2"></div>
+        <div class="formula-display" id="display2"></div>
+      </div>
+    </div>
+
+    <div class="question-text" id="q-text"></div>
+    <div class="options-grid" id="options"></div>
+    <div class="feedback" id="feedback"></div>
+    <button class="next-btn" id="next-btn">Câu 2 →</button>
+  </div>
+
+  <div class="win-screen" id="win-screen">
+    <span class="win-icon" id="win-icon">🏆</span>
+    <div class="win-title" id="win-title">Hoàn thành!</div>
+    <div class="win-sub" id="win-sub"></div>
+    <div style="font-family:'Space Mono',monospace;font-size:13px;color:var(--muted);margin-top:8px">
+      Đang chuyển trang <span id="countdown">3</span>...
+    </div>
+  </div>
+</div>
+
+<script>
+const FORMULAS = [
+  { title:'Vận tốc tức thời',       expr:'v = v₀ + a·t',         vars:['v','v₀','a','t'] },
+  { title:'Quãng đường',            expr:'s = v₀·t + ½·a·t²',    vars:['s','v₀','a','t'] },
+  { title:'Định luật II Newton',    expr:'F = m·a',               vars:['F','m','a'] },
+  { title:'Công suất',              expr:'P = W/t',               vars:['P','W','t'] },
+  { title:'Động năng',              expr:'Wđ = ½·m·v²',          vars:['Wđ','m','v'] },
+  { title:'Thế năng trọng trường',  expr:'Wt = m·g·h',           vars:['Wt','m','g','h'] },
+  { title:'Định luật Ohm',          expr:'V = I·R',               vars:['V','I','R'] },
+  { title:'Điện lượng',             expr:'Q = I·t',              vars:['Q','I','t'] },
+  { title:'Điện dung',              expr:'C = Q/U',              vars:['C','Q','U'] },
+  { title:'Cường độ điện trường',   expr:'E = U/d',              vars:['E','U','d'] },
+  { title:'Lực từ',                 expr:'F = B·I·l·sinθ',       vars:['F','B','I','l','θ'] },
+  { title:'Từ thông',               expr:'Φ = B·S·cosα',         vars:['Φ','B','S','α'] },
+  { title:'Suất điện động',         expr:'e = -ΔΦ/Δt',          vars:['e','ΔΦ','Δt'] },
+  { title:'Chu kỳ lò xo',          expr:'T = 2π·√(m/k)',        vars:['T','m','k'] },
+  { title:'Biên độ dao động',       expr:'A = √(x²+(v/ω)²)',     vars:['A','x','v','ω'] },
+  { title:'Lực Coulomb',            expr:'F = k·|q₁q₂|/r²',     vars:['F','k','q₁','q₂','r'] },
+  { title:'Điện trở dây dẫn',      expr:'R = ρ·l/S',            vars:['R','ρ','l','S'] },
+  { title:'Công dòng điện',         expr:'A = U·I·t',            vars:['A','U','I','t'] },
+  { title:'Định luật Jun–Lenxơ',   expr:'Q = I²·R·t',           vars:['Q','I','R','t'] },
+  { title:'Lực Lorentz',            expr:'F = q·v·B·sinθ',       vars:['F','q','v','B','θ'] },
+  { title:'Phương trình dao động',  expr:'x = A·cos(ω·t+φ)',     vars:['x','A','ω','t','φ'] },
+  { title:'Thế năng điện',         expr:'W = q·V',              vars:['W','q','V'] },
+  { title:'Công lực điện',          expr:'A = q·E·d',            vars:['A','q','E','d'] },
+  { title:'Dòng điện',             expr:'I = q/t',              vars:['I','q','t'] },
+  { title:'Điện tích',              expr:'q = n·e',              vars:['q','n','e'] },
+];
+
+const ALL_SYMS = [...new Set(FORMULAS.flatMap(f => f.vars))];
+
+let pair = [], hiddenSym = [];
+let activeQ = 0;                      // 0 or 1
+let qDone = [false, false];           // has each Q been answered correctly?
+let qMistake = [false, false];        // did user make a mistake on each Q?
+let waitingRetry = false;             // waiting for user to click correct answer after mistake
+
+function shuffle(a){ const b=[...a]; for(let i=b.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]];} return b; }
+function pick(arr,n){ return shuffle(arr).slice(0,n); }
+
+function buildDisplay(fIdx, revealed, wasOk){
+  const f = pair[fIdx];
+  const sym = hiddenSym[fIdx];
+  const wrap = document.createElement('div');
+  wrap.className = 'formula-display';
+  const expr = f.expr;
+  const idx = expr.indexOf(sym);
+  if(idx === -1){ wrap.textContent = expr; return wrap; }
+
+  const before = expr.slice(0, idx);
+  const after  = expr.slice(idx + sym.length);
+  if(before){ const s=document.createElement('span'); s.textContent=before; wrap.appendChild(s); }
+
+  const box = document.createElement('span');
+  box.className = 'blank-box' + (revealed ? (wasOk ? ' revealed' : ' wrong-rev') : '');
+  box.textContent = revealed ? sym : '?';
+  wrap.appendChild(box);
+
+  if(after){ const s=document.createElement('span'); s.textContent=after; wrap.appendChild(s); }
+  return wrap;
+}
+
+function renderCards(){
+  for(let i=0;i<2;i++){
+    const disp = buildDisplay(i, qDone[i], !qMistake[i]);
+    const old = document.getElementById('display'+(i+1));
+    disp.id = 'display'+(i+1);
+    old.replaceWith(disp);
+    document.getElementById('title'+(i+1)).textContent = pair[i].title;
+
+    const card = document.getElementById('card'+(i+1));
+    let cls = 'formula-card';
+    if(i === activeQ && !qDone[i]) cls += ' active-card';
+    else if(qDone[i]) cls += ' card-correct';
+    else if(i !== activeQ) cls += ' card-dim';
+    card.className = cls;
+  }
+}
+
+function updateSteps(){
+  const s1 = document.getElementById('step1');
+  const s2 = document.getElementById('step2');
+  const ln = document.getElementById('line1');
+
+  // Step 1
+  if(qDone[0]){
+    s1.className = 'step-dot done-ok';
+    s1.textContent = '✓';
+    ln.className = 'step-line done';
+  } else {
+    s1.className = 'step-dot' + (activeQ===0 ? ' active' : '');
+    s1.textContent = '1';
+  }
+
+  // Step 2
+  if(qDone[1]){
+    s2.className = 'step-dot done-ok';
+    s2.textContent = '✓';
+  } else {
+    s2.className = 'step-dot' + (activeQ===1 ? ' active' : '');
+    s2.textContent = '2';
+  }
+}
+
+function startGame(){
+  pair = pick(FORMULAS, 2);
+  hiddenSym = pair.map(f => f.vars[Math.floor(Math.random()*f.vars.length)]);
+  qDone = [false, false];
+  qMistake = [false, false];
+  activeQ = 0;
+  waitingRetry = false;
+
+  document.getElementById('feedback').textContent = '';
+  document.getElementById('feedback').className = 'feedback';
+  document.getElementById('next-btn').style.display = 'none';
+
+  renderCards();
+  updateSteps();
+  showQuestion();
+}
+
+function showQuestion(){
+  const f = pair[activeQ];
+  const sym = hiddenSym[activeQ];
+  const masked = f.expr.replace(sym, '[ ? ]');
+  document.getElementById('q-text').innerHTML =
+    `Công thức <strong>${masked}</strong><br>Ký hiệu <strong style="color:var(--accent)">?</strong> là gì?`;
+
+  const correct = sym;
+  const pool = ALL_SYMS.filter(s => s !== correct);
+  const wrongs = pick(pool, 3);
+  const opts = shuffle([correct, ...wrongs]);
+
+  const grid = document.getElementById('options');
+  grid.innerHTML = '';
+  opts.forEach(opt => {
+    const btn = document.createElement('button');
+    btn.className = 'option-btn';
+    btn.textContent = opt;
+    btn.onclick = () => choose(opt, correct, btn);
+    grid.appendChild(btn);
+  });
+
+  waitingRetry = false;
+}
+
+function choose(chosen, correct, clickedBtn){
+  if(waitingRetry){
+    // Only accept clicking the highlighted correct button
+    if(chosen !== correct) return;
+    // User clicked correct after seeing hint
+    lockOptions(false);
+    clickedBtn.classList.remove('hint');
+    clickedBtn.classList.add('sel-ok');
+    document.getElementById('feedback').textContent = '✓ Chính xác! (lần 2)';
+    document.getElementById('feedback').className = 'feedback ok';
+    spawnParticles(clickedBtn);
+    qDone[activeQ] = true;
+    waitingRetry = false;
+    renderCards();
+    updateSteps();
+    setTimeout(afterCorrect, 900);
+    return;
+  }
+
+  const ok = chosen === correct;
+
+  if(ok){
+    lockOptions(false);
+    clickedBtn.classList.add('sel-ok');
+    document.getElementById('feedback').textContent = '✓ Chính xác!';
+    document.getElementById('feedback').className = 'feedback ok';
+    spawnParticles(clickedBtn);
+    qDone[activeQ] = true;
+    renderCards();
+    updateSteps();
+    setTimeout(afterCorrect, 900);
+  } else {
+    // Wrong — highlight correct, let user retry
+    qMistake[activeQ] = true;
+    clickedBtn.classList.add('sel-err');
+
+    // shake the card
+    const card = document.getElementById('card'+(activeQ+1));
+    card.classList.add('shake');
+    card.addEventListener('animationend', ()=> card.classList.remove('shake'), {once:true});
+
+    document.getElementById('feedback').textContent = '✗ Sai! Hãy chọn đáp án đúng bên dưới 👇';
+    document.getElementById('feedback').className = 'feedback err';
+
+    // Disable wrong button, highlight correct one
+    clickedBtn.disabled = true;
+    document.querySelectorAll('.option-btn').forEach(b => {
+      if(b.textContent === correct) b.classList.add('hint');
+      else if(b !== clickedBtn) b.disabled = true;
+    });
+
+    waitingRetry = true;
+  }
+}
+
+function lockOptions(disable){
+  document.querySelectorAll('.option-btn').forEach(b => b.disabled = disable);
+}
+
+function afterCorrect(){
+  if(activeQ === 0){
+    // Move to Q2
+    activeQ = 1;
+    document.getElementById('feedback').textContent = '';
+    document.getElementById('feedback').className = 'feedback';
+    renderCards();
+    updateSteps();
+    document.getElementById('next-btn').style.display = 'none';
+    showQuestion();
+  } else {
+    // Both done → show finish
+    document.getElementById('next-btn').style.display = 'none';
+    setTimeout(showWin, 400);
+  }
+}
+
+function spawnParticles(btn){
+  const r = btn.getBoundingClientRect();
+  const cx = r.left + r.width/2, cy = r.top + r.height/2;
+  for(let i=0;i<14;i++){
+    const el = document.createElement('div');
+    el.className = 'particle';
+    const a = (i/14)*Math.PI*2, d = 60 + Math.random()*70;
+    const size = 4 + Math.random()*5;
+    el.style.cssText = `width:${size}px;height:${size}px;left:${cx}px;top:${cy}px;background:${Math.random()>.5?'#00f5c4':'#ffd700'};--tx:${Math.cos(a)*d}px;--ty:${Math.sin(a)*d}px;animation-duration:${.7+Math.random()*.4}s`;
+    document.body.appendChild(el);
+    el.addEventListener('animationend', ()=>el.remove());
+  }
+}
+
+function showWin(){
+  document.getElementById('quiz').style.display = 'none';
+  const ws = document.getElementById('win-screen');
+  ws.style.display = 'block';
+
+  const perfect = !qMistake[0] && !qMistake[1];
+  const oneWrong = qMistake[0] !== qMistake[1];
+
+  document.getElementById('win-icon').textContent  = perfect ? '🏆' : oneWrong ? '👍' : '💪';
+  document.getElementById('win-title').textContent = perfect ? 'Xuất Sắc!' : 'Hoàn thành!';
+
+  let detail = '';
+  for(let i=0;i<2;i++){
+    detail += `Công thức ${i+1}: ${pair[i].expr} → ${pair[i].title} ${qMistake[i]?'(sai 1 lần)':'✓'}\n`;
+  }
+  document.getElementById('win-sub').innerHTML =
+    (perfect ? '🌟 Trả lời đúng cả 2 ngay lần đầu!' : '📚 Đã hoàn thành, xem lại phần sai nhé!') +
+    `<br><br><span style="font-size:12px;line-height:2">${pair[0].expr} → <b>${hiddenSym[0]}</b><br>${pair[1].expr} → <b>${hiddenSym[1]}</b></span>`;
+
+  // Auto redirect
+  let sec = 3;
+  const cd = document.getElementById('countdown');
+  const timer = setInterval(()=>{
+    sec--;
+    if(cd) cd.textContent = sec;
+    if(sec <= 0){ clearInterval(timer); window.location.href = 'index1.html'; }
+  }, 1000);
+
+  // Confetti
+  for(let i=0;i<50;i++){
+    setTimeout(()=>{
+      const el=document.createElement('div'); el.className='particle';
+      const size=4+Math.random()*6;
+      el.style.cssText=`width:${size}px;height:${size}px;border-radius:${Math.random()>.5?'50%':'2px'};left:${Math.random()*window.innerWidth}px;top:${Math.random()*window.innerHeight*.4}px;background:${['#00f5c4','#ff4d6d','#ffd700','#a78bfa'][Math.floor(Math.random()*4)]};--tx:${(Math.random()-.5)*200}px;--ty:${80+Math.random()*200}px;animation-duration:${.8+Math.random()*.8}s`;
+      document.body.appendChild(el);
+      el.addEventListener('animationend',()=>el.remove());
+    }, i*40);
+  }
+}
+
+function restartGame(){
+  document.getElementById('win-screen').style.display = 'none';
+  document.getElementById('quiz').style.display = 'block';
+  const qw = document.querySelector('.quiz-wrap');
+  qw.style.animation = 'none';
+  setTimeout(()=>{ qw.style.animation='fadeIn .4s ease'; startGame(); }, 10);
+}
+
+startGame();
+</script>
+</body>
+</html>
